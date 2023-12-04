@@ -19,8 +19,10 @@ import { markRaw } from "vue";
 import SettingTab from "./tabs/Setting.vue";
 import { useRouteQuery } from "@vueuse/router";
 import NotificationsTab from "./tabs/Notifications.vue";
+import { usePermission } from "@/utils/permission";
 
 const { t } = useI18n();
+const { currentUserHasPermission } = usePermission();
 
 interface Tab {
   id: string;
@@ -63,11 +65,13 @@ const { data: setting } = useQuery({
       }
 
       // TODO: use integrations center to refactor this
-      tabs.value.push({
-        id: "notification",
-        label: "通知设置",
-        component: markRaw(NotificationsTab),
-      });
+      if (currentUserHasPermission(["system:notifier:configuration"])) {
+        tabs.value.push({
+          id: "notification",
+          label: "通知设置",
+          component: markRaw(NotificationsTab),
+        });
+      }
     }
   },
 });
@@ -82,7 +86,7 @@ provide<Ref<Setting | undefined>>("setting", setting);
   </VPageHeader>
 
   <div class="m-0 md:m-4">
-    <VCard :body-class="['!p-0']">
+    <VCard :body-class="['!p-0', '!overflow-visible']">
       <template #header>
         <VTabbar
           v-model:active-id="activeTab"
@@ -91,7 +95,7 @@ provide<Ref<Setting | undefined>>("setting", setting);
           type="outline"
         ></VTabbar>
       </template>
-      <div class="bg-white">
+      <div class="rounded-b-base bg-white">
         <template v-for="tab in tabs" :key="tab.id">
           <component :is="tab.component" v-if="activeTab === tab.id" />
         </template>

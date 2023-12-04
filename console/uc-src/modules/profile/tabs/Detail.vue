@@ -2,6 +2,7 @@
 import {
   Dialog,
   IconUserSettings,
+  VAlert,
   VButton,
   VDescription,
   VDescriptionItem,
@@ -16,6 +17,8 @@ import { useQuery } from "@tanstack/vue-query";
 import { apiClient } from "@/utils/api-client";
 import axios from "axios";
 import { useI18n } from "vue-i18n";
+import EmailVerifyModal from "../components/EmailVerifyModal.vue";
+import { ref } from "vue";
 
 const user = inject<Ref<DetailedUser | undefined>>("user");
 
@@ -37,7 +40,7 @@ const availableAuthProviders = computed(() => {
 
 const handleUnbindAuth = (authProvider: ListedAuthProvider) => {
   Dialog.warning({
-    title: t("core.user.detail.operations.unbind.title", {
+    title: t("core.uc_profile.detail.operations.unbind.title", {
       display_name: authProvider.displayName,
     }),
     confirmText: t("core.common.buttons.confirm"),
@@ -63,27 +66,67 @@ const handleBindAuth = (authProvider: ListedAuthProvider) => {
     authProvider.bindingUrl
   }?redirect_uri=${encodeURIComponent(window.location.href)}`;
 };
+
+// verify email
+const emailVerifyModal = ref(false);
 </script>
 <template>
   <div class="border-t border-gray-100">
     <VDescription>
       <VDescriptionItem
-        :label="$t('core.user.detail.fields.display_name')"
+        :label="$t('core.uc_profile.detail.fields.display_name')"
         :content="user?.user.spec.displayName"
         class="!px-2"
       />
       <VDescriptionItem
-        :label="$t('core.user.detail.fields.username')"
+        :label="$t('core.uc_profile.detail.fields.username')"
         :content="user?.user.metadata.name"
         class="!px-2"
       />
       <VDescriptionItem
-        :label="$t('core.user.detail.fields.email')"
-        :content="user?.user.spec.email || $t('core.common.text.none')"
+        :label="$t('core.uc_profile.detail.fields.email')"
         class="!px-2"
-      />
+      >
+        <div v-if="user" class="w-full xl:w-1/2">
+          <VAlert
+            v-if="!user.user.spec.email"
+            :title="$t('core.uc_profile.detail.email_not_set.title')"
+            :description="
+              $t('core.uc_profile.detail.email_not_set.description')
+            "
+            type="warning"
+            :closable="false"
+          >
+            <template #actions>
+              <VButton size="sm" @click="emailVerifyModal = true">
+                {{ $t("core.common.buttons.setting") }}
+              </VButton>
+            </template>
+          </VAlert>
+
+          <div v-else>
+            <span>{{ user.user.spec.email }}</span>
+            <div v-if="!user.user.spec.emailVerified" class="mt-3">
+              <VAlert
+                :title="$t('core.uc_profile.detail.email_not_verified.title')"
+                :description="
+                  $t('core.uc_profile.detail.email_not_verified.description')
+                "
+                type="warning"
+                :closable="false"
+              >
+                <template #actions>
+                  <VButton size="sm" @click="emailVerifyModal = true">
+                    {{ $t("core.common.buttons.verify") }}
+                  </VButton>
+                </template>
+              </VAlert>
+            </div>
+          </div>
+        </div>
+      </VDescriptionItem>
       <VDescriptionItem
-        :label="$t('core.user.detail.fields.roles')"
+        :label="$t('core.uc_profile.detail.fields.roles')"
         class="!px-2"
       >
         <VTag v-for="role in user?.roles" :key="role.metadata.name">
@@ -97,18 +140,18 @@ const handleBindAuth = (authProvider: ListedAuthProvider) => {
         </VTag>
       </VDescriptionItem>
       <VDescriptionItem
-        :label="$t('core.user.detail.fields.bio')"
+        :label="$t('core.uc_profile.detail.fields.bio')"
         :content="user?.user.spec?.bio || $t('core.common.text.none')"
         class="!px-2"
       />
       <VDescriptionItem
-        :label="$t('core.user.detail.fields.creation_time')"
+        :label="$t('core.uc_profile.detail.fields.creation_time')"
         :content="formatDatetime(user?.user.metadata?.creationTimestamp)"
         class="!px-2"
       />
       <VDescriptionItem
         v-if="!isFetching && availableAuthProviders?.length"
-        :label="$t('core.user.detail.fields.identity_authentication')"
+        :label="$t('core.uc_profile.detail.fields.identity_authentication')"
         class="!px-2"
       >
         <ul class="space-y-2">
@@ -134,7 +177,7 @@ const handleBindAuth = (authProvider: ListedAuthProvider) => {
                     size="sm"
                     @click="handleUnbindAuth(authProvider)"
                   >
-                    {{ $t("core.user.detail.operations.unbind.button") }}
+                    {{ $t("core.uc_profile.detail.operations.unbind.button") }}
                   </VButton>
                   <VButton
                     v-else
@@ -142,7 +185,7 @@ const handleBindAuth = (authProvider: ListedAuthProvider) => {
                     type="secondary"
                     @click="handleBindAuth(authProvider)"
                   >
-                    {{ $t("core.user.detail.operations.bind.button") }}
+                    {{ $t("core.uc_profile.detail.operations.unbind.button") }}
                   </VButton>
                 </div>
               </div>
@@ -151,5 +194,10 @@ const handleBindAuth = (authProvider: ListedAuthProvider) => {
         </ul>
       </VDescriptionItem>
     </VDescription>
+
+    <EmailVerifyModal
+      v-if="emailVerifyModal"
+      @close="emailVerifyModal = false"
+    />
   </div>
 </template>

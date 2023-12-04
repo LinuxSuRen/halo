@@ -1,7 +1,8 @@
+import { rbacAnnotations } from "@/constants/annotations";
 import { useUserStore } from "@/stores/user";
 import type { Router } from "vue-router";
 
-const whiteList = ["Setup", "Login", "Binding"];
+const whiteList = ["Setup", "Login", "Binding", "ResetPassword"];
 
 export function setupAuthCheckGuard(router: Router) {
   router.beforeEach((to, from, next) => {
@@ -29,13 +30,51 @@ export function setupAuthCheckGuard(router: Router) {
               redirect_uri: to.query.redirect_uri,
             },
           });
-        } else {
-          next({
-            name: "Dashboard",
-          });
           return;
         }
+
+        const roleHasRedirectOnLogin = userStore.currentRoles?.find(
+          (role) =>
+            role.metadata.annotations?.[rbacAnnotations.REDIRECT_ON_LOGIN]
+        );
+
+        if (roleHasRedirectOnLogin) {
+          window.location.href =
+            roleHasRedirectOnLogin.metadata.annotations?.[
+              rbacAnnotations.REDIRECT_ON_LOGIN
+            ] || "/uc";
+          return;
+        }
+
+        next({
+          name: "Dashboard",
+        });
+        return;
       }
+
+      if (to.name === "whiteList") {
+        next();
+        return;
+      }
+
+      // Check allow access console
+      const { currentRoles } = userStore;
+
+      const hasDisallowAccessConsoleRole = currentRoles?.some((role) => {
+        return (
+          role.metadata.annotations?.[
+            rbacAnnotations.DISALLOW_ACCESS_CONSOLE
+          ] === "true"
+        );
+      });
+
+      if (hasDisallowAccessConsoleRole) {
+        window.location.href = "/uc";
+        return;
+      }
+
+      next();
+      return;
     }
 
     next();
