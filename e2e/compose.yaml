@@ -4,6 +4,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    environment:
+      REPO: "${OWNER}/halo"
+      GITHUB_TOKEN: "$GITHUB_TOKEN"
+      PR: "$PULL_REQUEST"
     links:
       - halo
     depends_on:

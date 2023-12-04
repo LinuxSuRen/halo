@@ -1,4 +1,6 @@
-FROM linuxsuren/api-testing:v0.0.14
+FROM linuxsuren/api-testing:master
+
 WORKDIR /workspace
-COPY testsuite.yaml .
-CMD [ "atest", "run", "-p", "testsuite.yaml", "--level=debug" ]
+COPY . .
+
+CMD [ "/workspace/entrypoint.sh" ]
